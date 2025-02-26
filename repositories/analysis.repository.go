@@ -1,0 +1,102 @@
+package repositories
+
+import (
+	"encoding/csv"
+	"log"
+	"os"
+	"strconv"
+
+	"github.com/mpavithran/sales-analysis/models"
+	"gorm.io/gorm"
+)
+
+type AnalysisRepository struct {
+	DB *gorm.DB
+}
+
+func NewAnalysisRepository(db *gorm.DB) *AnalysisRepository {
+	return &AnalysisRepository{DB: db}
+}
+
+func (r *AnalysisRepository) loadCSVData(filename string) {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal("Unable to open file", err)
+	}
+	defer file.Close()
+
+	reader := csv.NewReader(file)
+	_, _ = reader.Read()
+
+	for {
+		record, err := reader.Read()
+		if err != nil {
+			break
+		}
+
+		orderID, _ := strconv.Atoi(record[0])
+		quantitySold, _ := strconv.Atoi(record[7])
+		unitPrice, _ := strconv.ParseFloat(record[8], 64)
+		discount, _ := strconv.ParseFloat(record[9], 64)
+		shippingCost, _ := strconv.ParseFloat(record[10], 64)
+
+		order := models.Order{
+			OrderID:         orderID,
+			ProductID:       record[1],
+			CustomerID:      record[2],
+			ProductName:     record[3],
+			Category:        record[4],
+			Region:          record[5],
+			DateOfSale:      record[6],
+			QuantitySold:    quantitySold,
+			UnitPrice:       unitPrice,
+			Discount:        discount,
+			ShippingCost:    shippingCost,
+			PaymentMethod:   record[11],
+			CustomerName:    record[12],
+			CustomerEmail:   record[13],
+			CustomerAddress: record[14],
+		}
+		r.DB.Create(order)
+		if err != nil {
+			log.Println("Failed to insert record", err)
+		}
+	}
+}
+
+func (r *AnalysisRepository) UploadCSV(filePath string) error {
+	r.loadCSVData(filePath)
+	return nil
+}
+
+func (r *AnalysisRepository) GetRevenue(dateFrom string, dateTo string) (float64, error) {
+	var revenue float64
+	err := r.DB.Table("orders").
+		Select("SUM(quantity_sold * unit_price * (1 - discount))").
+		Where("date_of_sale BETWEEN ? AND ?", dateFrom, dateTo).
+		Scan(&revenue).Error
+	if err != nil {
+		return 0, err
+	}
+	return revenue, nil
+}
+
+func (r *AnalysisRepository) TopProducts(dateFrom string, dateTo string, n int) ([]models.TopProduct, error) {
+
+	var products []models.TopProduct
+
+	// Query using GORM
+	err := r.DB.Table("orders").
+		Select("product_name, SUM(quantity_sold) as total_quantity").
+		Where("date_of_sale BETWEEN ? AND ?", dateFrom, dateTo).
+		Group("product_name").
+		Order("total_quantity DESC").
+		Limit(n).
+		Scan(&products).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return products, nil
+}
