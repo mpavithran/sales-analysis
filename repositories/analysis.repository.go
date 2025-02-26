@@ -69,16 +69,30 @@ func (r *AnalysisRepository) UploadCSV(filePath string) error {
 	return nil
 }
 
-func (r *AnalysisRepository) GetRevenue(dateFrom string, dateTo string) (float64, error) {
-	var revenue float64
-	err := r.DB.Table("orders").
-		Select("SUM(quantity_sold * unit_price * (1 - discount))").
-		Where("date_of_sale BETWEEN ? AND ?", dateFrom, dateTo).
-		Scan(&revenue).Error
-	if err != nil {
+func (r *AnalysisRepository) GetRevenue(revenue models.Revenue) (float64, error) {
+	var revenueData float64
+	query := r.DB.Table("orders").
+		Select("COALESCE(SUM(quantity_sold * unit_price * (1 - discount)), 0)").
+		Where("date_of_sale BETWEEN ? AND ?", revenue.DateFrom, revenue.DateTo)
+
+	if revenue.Product != "" {
+		query = query.Where("product_name = ?", revenue.Product)
+	}
+
+	if revenue.Category != "" {
+		query = query.Where("category = ?", revenue.Category)
+	}
+
+	if revenue.Region != "" {
+		query = query.Where("region = ?", revenue.Region)
+	}
+
+	if err := query.Scan(&revenueData).Error; err != nil {
 		return 0, err
 	}
-	return revenue, nil
+
+	return revenueData, nil
+
 }
 
 func (r *AnalysisRepository) TopProducts(dateFrom string, dateTo string, n int) ([]models.TopProduct, error) {

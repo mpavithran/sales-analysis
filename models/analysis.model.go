@@ -1,9 +1,9 @@
 package models
 
 type Order struct {
-	OrderID         int `gorm:"primaryKey"`
-	ProductID       string
-	CustomerID      string
+	OrderID         int    `gorm:"primaryKey"`
+	ProductID       string `gorm:"unique"`
+	CustomerID      string `gorm:"unique"`
 	ProductName     string
 	Category        string
 	Region          string
@@ -16,6 +16,14 @@ type Order struct {
 	CustomerName    string
 	CustomerEmail   string
 	CustomerAddress string
+}
+
+type Revenue struct {
+	DateFrom string `json:"dateFrom"`
+	DateTo   string `json:"dateTo"`
+	Product  string `json:"product"`
+	Category string `json:"category"`
+	Region   string `json:"region"`
 }
 
 type TopProduct struct {

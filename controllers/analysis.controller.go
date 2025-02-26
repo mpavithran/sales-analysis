@@ -3,9 +3,12 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mpavithran/sales-analysis/models"
 	"github.com/mpavithran/sales-analysis/services"
+	"github.com/mpavithran/sales-analysis/utils"
 )
 
 type AnalysisController struct {
@@ -41,7 +44,36 @@ func (c *AnalysisController) UploadCSV(ctx *gin.Context) {
 func (c *AnalysisController) GetRevenue(ctx *gin.Context) {
 	dateFrom := ctx.Query("from")
 	dateTo := ctx.Query("to")
-	revenue, err := c.service.GetRevenue(dateFrom, dateTo)
+	product := ctx.Query("product")
+	category := ctx.Query("category")
+	region := ctx.Query("region")
+
+	if dateFrom == "" || dateTo == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "date_from and date_to are required"})
+		return
+	}
+
+	if !utils.IsValidDate(dateFrom) || !utils.IsValidDate(dateTo) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format. Use YYYY-MM-DD"})
+		return
+	}
+
+	fromTime, _ := time.Parse("2006-01-02", dateFrom)
+	toTime, _ := time.Parse("2006-01-02", dateTo)
+
+	if fromTime.After(toTime) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "date_from cannot be after date_to"})
+		return
+	}
+	inputData := models.Revenue{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+		Product:  product,
+		Category: category,
+		Region:   region,
+	}
+
+	revenue, err := c.service.GetRevenue(inputData)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve users"})
 		return
@@ -54,6 +86,25 @@ func (c *AnalysisController) TopProducts(ctx *gin.Context) {
 	n, _ := strconv.Atoi(ctx.Query("top"))
 	dateFrom := ctx.Query("from")
 	dateTo := ctx.Query("to")
+
+	if dateFrom == "" || dateTo == "" || n == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "date_from, date_to, top are required"})
+		return
+	}
+
+	if !utils.IsValidDate(dateFrom) || !utils.IsValidDate(dateTo) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format. Use YYYY-MM-DD"})
+		return
+	}
+
+	fromTime, _ := time.Parse("2006-01-02", dateFrom)
+	toTime, _ := time.Parse("2006-01-02", dateTo)
+
+	if fromTime.After(toTime) {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "date_from cannot be after date_to"})
+		return
+	}
+
 	products, err := c.service.TopProducts(dateFrom, dateTo, n)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
