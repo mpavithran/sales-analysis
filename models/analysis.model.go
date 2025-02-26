@@ -27,6 +27,14 @@ type Revenue struct {
 }
 
 type TopProduct struct {
+	DateFrom string `json:"dateFrom"`
+	DateTo   string `json:"dateTo"`
+	Limit    int    `json:"limit"`
+	Category string `json:"category"`
+	Region   string `json:"region"`
+}
+
+type TopProductData struct {
 	ProductName   string
 	TotalQuantity int
 }

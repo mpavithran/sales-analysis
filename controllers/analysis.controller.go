@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -87,6 +88,8 @@ func (c *AnalysisController) TopProducts(ctx *gin.Context) {
 	dateFrom := ctx.Query("from")
 	dateTo := ctx.Query("to")
 
+	fmt.Println(n, dateFrom, dateTo)
+
 	if dateFrom == "" || dateTo == "" || n == 0 {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "date_from, date_to, top are required"})
 		return
@@ -105,7 +108,13 @@ func (c *AnalysisController) TopProducts(ctx *gin.Context) {
 		return
 	}
 
-	products, err := c.service.TopProducts(dateFrom, dateTo, n)
+	topProduct := models.TopProduct{
+		DateFrom: dateFrom,
+		DateTo:   dateTo,
+		Limit:    n,
+	}
+
+	products, err := c.service.TopProducts(topProduct)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return

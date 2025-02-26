@@ -95,20 +95,25 @@ func (r *AnalysisRepository) GetRevenue(revenue models.Revenue) (float64, error)
 
 }
 
-func (r *AnalysisRepository) TopProducts(dateFrom string, dateTo string, n int) ([]models.TopProduct, error) {
+func (r *AnalysisRepository) TopProducts(topProduct models.TopProduct) ([]models.TopProductData, error) {
 
-	var products []models.TopProduct
+	var products []models.TopProductData
 
-	// Query using GORM
-	err := r.DB.Table("orders").
+	query := r.DB.Table("orders").
 		Select("product_name, SUM(quantity_sold) as total_quantity").
-		Where("date_of_sale BETWEEN ? AND ?", dateFrom, dateTo).
+		Where("date_of_sale BETWEEN ? AND ?", topProduct.DateFrom, topProduct.DateTo).
 		Group("product_name").
 		Order("total_quantity DESC").
-		Limit(n).
-		Scan(&products).Error
+		Limit(topProduct.Limit)
 
-	if err != nil {
+	if topProduct.Category != "" {
+		query = query.Where("category = ?", topProduct.Category)
+	}
+	if topProduct.Region != "" {
+		query = query.Where("region = ?", topProduct.Region)
+	}
+
+	if err := query.Scan(&products).Error; err != nil {
 		return nil, err
 	}
 

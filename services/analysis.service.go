@@ -21,6 +21,6 @@ func (s *AnalysisService) GetRevenue(revenue models.Revenue) (float64, error) {
 	return s.repo.GetRevenue(revenue)
 }
 
-func (s *AnalysisService) TopProducts(dateFrom string, dateTo string, n int) ([]models.TopProduct, error) {
-	return s.repo.TopProducts(dateFrom, dateTo, n)
+func (s *AnalysisService) TopProducts(topProduct models.TopProduct) ([]models.TopProductData, error) {
+	return s.repo.TopProducts(topProduct)
 }
